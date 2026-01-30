@@ -1,0 +1,5 @@
+{
+  "name": "Neovim Module Dashboard",
+  "description": "A sophisticated web-based configuration manager for Neovim, featuring a file explorer, plugin manager, and high-fidelity code editor interface.",
+  "requestFramePermissions": []
+}
