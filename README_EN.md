@@ -118,7 +118,8 @@ This is still early stage, but it's already quite functional for daily use. I'd 
 ## Screenshots
 
 
-[You should add some screenshots here showing the interface]
+<img width="3199" height="1730" alt="image" src="https://github.com/user-attachments/assets/a5891273-ba6a-4031-ad6a-2748751e4fda" />
+
 
 
 ---
