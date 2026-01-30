@@ -66,9 +66,10 @@ func (s *ConfigService) GetFiles() ([]models.ConfigFile, error) {
 			if _, err := os.Stat(backupPath); err == nil {
 				file.BackupExists = true
 			}
-		}
 
-		files = append(files, file)
+			// 只添加存在的文件到列表中
+			files = append(files, file)
+		}
 	}
 
 	return files, nil
@@ -96,6 +97,11 @@ func (s *ConfigService) GetFileByID(fileID string) (*models.ConfigFile, error) {
 	}
 
 	realPath := strings.Replace(targetFile.Path, "~", homeDir, 1)
+
+	// 检查文件是否存在
+	if _, err := os.Stat(realPath); os.IsNotExist(err) {
+		return nil, fmt.Errorf("文件不存在: %s", realPath)
+	}
 
 	// 读取文件内容
 	content, err := os.ReadFile(realPath)
@@ -167,6 +173,12 @@ func (s *ConfigService) BackupFile(fileID string) (*models.BackupFileResponse, e
 	}
 
 	realPath := strings.Replace(targetFile.Path, "~", homeDir, 1)
+
+	// 检查文件是否存在
+	if _, err := os.Stat(realPath); os.IsNotExist(err) {
+		return nil, fmt.Errorf("文件不存在: %s", realPath)
+	}
+
 	backupPath := realPath + ".backup." + time.Now().Format("20060102-150405")
 
 	// 复制文件作为备份

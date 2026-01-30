@@ -23,7 +23,7 @@ pnpm install
 echo "🔧 启动后端服务器..."
 cd backend
 go mod tidy
-go run main.go &
+go run cmd/server/main.go &
 BACKEND_PID=$!
 cd ..
 
