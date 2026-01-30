@@ -140,7 +140,8 @@ go build -o config-manager main.go
 - 连接状态监控
 
 ### 项目演示
-![Uploading image.png…]()
+<img width="3199" height="1730" alt="image" src="https://github.com/user-attachments/assets/d58a217e-767d-4ddf-a539-8a22f4cf257f" />
+
 
 ## 🔮 未来规划
 
