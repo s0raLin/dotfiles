@@ -1,13 +1,8 @@
 
 import React, { useState } from 'react';
-import { CONFIG_CATEGORIES, COMMON_CONFIG_FILES } from '../constants';
+import { useApp } from '../contexts/AppContext';
 import { ConfigCategory, ConfigFile } from '../types';
-import { Terminal, FileText, GitBranch, Key, Settings, Package, ChevronDown, ChevronRight } from 'lucide-react';
-
-interface SidebarProps {
-  activeFileId: string;
-  onFileSelect: (id: string) => void;
-}
+import { Terminal, FileText, GitBranch, Key, Settings, Package, ChevronDown, ChevronRight, RefreshCw } from 'lucide-react';
 
 const iconMap = {
   Terminal,
@@ -21,7 +16,7 @@ const iconMap = {
 const CategorySection: React.FC<{
   category: ConfigCategory;
   files: ConfigFile[];
-  activeFileId: string;
+  activeFileId: string | null;
   onFileSelect: (id: string) => void;
 }> = ({ category, files, activeFileId, onFileSelect }) => {
   const [isExpanded, setIsExpanded] = useState(true);
@@ -72,44 +67,54 @@ const CategorySection: React.FC<{
   );
 };
 
-const Sidebar: React.FC<SidebarProps> = ({ activeFileId, onFileSelect }) => {
-  // 模拟配置文件数据
-  const mockConfigFiles: ConfigFile[] = COMMON_CONFIG_FILES.map(file => ({
-    ...file,
-    lastModified: new Date(),
-    size: Math.floor(Math.random() * 10000) + 1000,
-    backupExists: Math.random() > 0.5
-  }));
+const Sidebar: React.FC = () => {
+  const { state, actions } = useApp();
+  const { categories, files, systemInfo, activeFileId, isLoading } = state;
+
+  const handleRefresh = () => {
+    actions.refreshData();
+  };
 
   return (
     <aside className="w-80 border-r border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 flex flex-col shrink-0 overflow-y-auto">
       <div className="p-4 border-b border-slate-200 dark:border-slate-800">
         <div className="flex items-center gap-2 mb-4">
-          <Settings size={20} className="text-blue-500" />
-          <h2 className="text-lg font-semibold">配置管理器</h2>
+          <FileText size={20} className="text-blue-500" />
+          <h2 className="text-base font-semibold">文件浏览器</h2>
         </div>
         
         <div className="flex items-center justify-between mb-4">
           <span className="text-xs font-bold uppercase tracking-wider text-slate-500">配置文件</span>
-          <button className="text-xs bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600">
+          <button 
+            onClick={handleRefresh}
+            disabled={isLoading}
+            className="flex items-center gap-1 text-xs bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <RefreshCw size={12} className={isLoading ? 'animate-spin' : ''} />
             刷新
           </button>
         </div>
       </div>
 
       <div className="flex-1 p-4 overflow-y-auto">
-        {CONFIG_CATEGORIES.map(category => {
-          const categoryFiles = mockConfigFiles.filter(file => file.category.id === category.id);
-          return (
-            <CategorySection
-              key={category.id}
-              category={category}
-              files={categoryFiles}
-              activeFileId={activeFileId}
-              onFileSelect={onFileSelect}
-            />
-          );
-        })}
+        {isLoading && categories.length === 0 ? (
+          <div className="flex items-center justify-center py-8">
+            <div className="text-sm text-slate-500">加载中...</div>
+          </div>
+        ) : (
+          categories.map(category => {
+            const categoryFiles = files.filter(file => file.category === category.id);
+            return (
+              <CategorySection
+                key={category.id}
+                category={category}
+                files={categoryFiles}
+                activeFileId={activeFileId}
+                onFileSelect={actions.selectFile}
+              />
+            );
+          })
+        )}
       </div>
 
       <div className="p-4 bg-slate-100 dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700">
@@ -117,15 +122,27 @@ const Sidebar: React.FC<SidebarProps> = ({ activeFileId, onFileSelect }) => {
         <div className="space-y-2">
           <div>
             <p className="text-xs text-slate-400">用户目录</p>
-            <p className="text-xs font-mono truncate text-slate-600 dark:text-slate-300">~/</p>
+            <p className="text-xs font-mono truncate text-slate-600 dark:text-slate-300">
+              {systemInfo?.homeDir || '~/'}
+            </p>
           </div>
           <div>
             <p className="text-xs text-slate-400">Shell</p>
-            <p className="text-xs font-mono truncate text-slate-600 dark:text-slate-300">/bin/bash</p>
+            <p className="text-xs font-mono truncate text-slate-600 dark:text-slate-300">
+              {systemInfo?.shell || '/bin/bash'}
+            </p>
+          </div>
+          <div>
+            <p className="text-xs text-slate-400">用户</p>
+            <p className="text-xs font-mono truncate text-slate-600 dark:text-slate-300">
+              {systemInfo?.user || 'user'}
+            </p>
           </div>
           <div>
             <p className="text-xs text-slate-400">配置总数</p>
-            <p className="text-xs font-mono truncate text-slate-600 dark:text-slate-300">{mockConfigFiles.length} 个文件</p>
+            <p className="text-xs font-mono truncate text-slate-600 dark:text-slate-300">
+              {files.length} 个文件
+            </p>
           </div>
         </div>
       </div>

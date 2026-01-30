@@ -3,7 +3,7 @@ export interface ConfigFile {
   id: string;
   name: string;
   path: string;
-  category: ConfigCategory;
+  category: string; // 改为字符串类型，与后端API一致
   description: string;
   lastModified: Date;
   size: number;
