@@ -1,3 +1,9 @@
+// 已弃用：此文件已被新的模块化架构替代
+// 新的入口点位于: cmd/server/main.go
+// 请使用: go run cmd/server/main.go 或 make dev
+//
+// 此文件将在确认新架构正常工作后删除
+
 package main
 
 import (
@@ -69,7 +75,7 @@ var commonConfigFiles = []ConfigFile{
 
 func main() {
 	r := mux.NewRouter()
-	
+
 	// API 路由
 	api := r.PathPrefix("/api").Subrouter()
 	api.HandleFunc("/categories", getCategoriesHandler).Methods("GET")
@@ -78,19 +84,20 @@ func main() {
 	api.HandleFunc("/files/{id}", updateFileHandler).Methods("PUT")
 	api.HandleFunc("/files/{id}/backup", backupFileHandler).Methods("POST")
 	api.HandleFunc("/system", getSystemInfoHandler).Methods("GET")
-	
+
 	// CORS 配置
 	c := cors.New(cors.Options{
 		AllowedOrigins: []string{"http://localhost:5173", "http://localhost:3000"},
 		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders: []string{"*"},
 	})
-	
+
 	handler := c.Handler(r)
-	
+
 	fmt.Println("服务器启动在 :8080")
 	log.Fatal(http.ListenAndServe(":8080", handler))
 }
+
 // API 处理函数
 func getCategoriesHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
@@ -102,29 +109,29 @@ func getCategoriesHandler(w http.ResponseWriter, r *http.Request) {
 
 func getFilesHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	
+
 	homeDir, _ := os.UserHomeDir()
 	var files []ConfigFile
-	
+
 	for _, file := range commonConfigFiles {
 		realPath := strings.Replace(file.Path, "~", homeDir, 1)
-		
+
 		// 检查文件是否存在
 		if info, err := os.Lstat(realPath); err == nil {
 			file.LastModified = info.ModTime()
 			file.Size = info.Size()
 			file.IsSymlink = info.Mode()&fs.ModeSymlink != 0
-			
+
 			// 检查备份是否存在
 			backupPath := realPath + ".backup"
 			if _, err := os.Stat(backupPath); err == nil {
 				file.BackupExists = true
 			}
 		}
-		
+
 		files = append(files, file)
 	}
-	
+
 	json.NewEncoder(w).Encode(APIResponse{
 		Success: true,
 		Data:    files,
@@ -135,7 +142,7 @@ func getFileHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	vars := mux.Vars(r)
 	fileID := vars["id"]
-	
+
 	// 查找文件
 	var targetFile *ConfigFile
 	for _, file := range commonConfigFiles {
@@ -144,7 +151,7 @@ func getFileHandler(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 	}
-	
+
 	if targetFile == nil {
 		json.NewEncoder(w).Encode(APIResponse{
 			Success: false,
@@ -152,10 +159,10 @@ func getFileHandler(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	
+
 	homeDir, _ := os.UserHomeDir()
 	realPath := strings.Replace(targetFile.Path, "~", homeDir, 1)
-	
+
 	// 读取文件内容
 	content, err := os.ReadFile(realPath)
 	if err != nil {
@@ -165,16 +172,16 @@ func getFileHandler(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	
+
 	targetFile.Content = string(content)
-	
+
 	// 更新文件信息
 	if info, err := os.Lstat(realPath); err == nil {
 		targetFile.LastModified = info.ModTime()
 		targetFile.Size = info.Size()
 		targetFile.IsSymlink = info.Mode()&fs.ModeSymlink != 0
 	}
-	
+
 	json.NewEncoder(w).Encode(APIResponse{
 		Success: true,
 		Data:    targetFile,
@@ -185,11 +192,11 @@ func updateFileHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	vars := mux.Vars(r)
 	fileID := vars["id"]
-	
+
 	var updateData struct {
 		Content string `json:"content"`
 	}
-	
+
 	if err := json.NewDecoder(r.Body).Decode(&updateData); err != nil {
 		json.NewEncoder(w).Encode(APIResponse{
 			Success: false,
@@ -197,7 +204,7 @@ func updateFileHandler(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	
+
 	// 查找文件
 	var targetFile *ConfigFile
 	for _, file := range commonConfigFiles {
@@ -206,7 +213,7 @@ func updateFileHandler(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 	}
-	
+
 	if targetFile == nil {
 		json.NewEncoder(w).Encode(APIResponse{
 			Success: false,
@@ -214,10 +221,10 @@ func updateFileHandler(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	
+
 	homeDir, _ := os.UserHomeDir()
 	realPath := strings.Replace(targetFile.Path, "~", homeDir, 1)
-	
+
 	// 写入文件
 	err := os.WriteFile(realPath, []byte(updateData.Content), 0644)
 	if err != nil {
@@ -227,7 +234,7 @@ func updateFileHandler(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	
+
 	json.NewEncoder(w).Encode(APIResponse{
 		Success: true,
 		Data:    map[string]string{"message": "文件保存成功"},
@@ -238,7 +245,7 @@ func backupFileHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	vars := mux.Vars(r)
 	fileID := vars["id"]
-	
+
 	// 查找文件
 	var targetFile *ConfigFile
 	for _, file := range commonConfigFiles {
@@ -247,7 +254,7 @@ func backupFileHandler(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 	}
-	
+
 	if targetFile == nil {
 		json.NewEncoder(w).Encode(APIResponse{
 			Success: false,
@@ -255,11 +262,11 @@ func backupFileHandler(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	
+
 	homeDir, _ := os.UserHomeDir()
 	realPath := strings.Replace(targetFile.Path, "~", homeDir, 1)
 	backupPath := realPath + ".backup." + time.Now().Format("20060102-150405")
-	
+
 	// 复制文件作为备份
 	content, err := os.ReadFile(realPath)
 	if err != nil {
@@ -269,7 +276,7 @@ func backupFileHandler(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	
+
 	err = os.WriteFile(backupPath, content, 0644)
 	if err != nil {
 		json.NewEncoder(w).Encode(APIResponse{
@@ -278,7 +285,7 @@ func backupFileHandler(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	
+
 	json.NewEncoder(w).Encode(APIResponse{
 		Success: true,
 		Data:    map[string]string{"message": "备份创建成功", "backupPath": backupPath},
@@ -287,11 +294,11 @@ func backupFileHandler(w http.ResponseWriter, r *http.Request) {
 
 func getSystemInfoHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	
+
 	homeDir, _ := os.UserHomeDir()
 	user := os.Getenv("USER")
 	shell := os.Getenv("SHELL")
-	
+
 	systemInfo := SystemInfo{
 		OS:      "Linux",
 		Kernel:  "Unknown",
@@ -299,7 +306,7 @@ func getSystemInfoHandler(w http.ResponseWriter, r *http.Request) {
 		HomeDir: homeDir,
 		User:    user,
 	}
-	
+
 	json.NewEncoder(w).Encode(APIResponse{
 		Success: true,
 		Data:    systemInfo,
