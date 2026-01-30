@@ -17,8 +17,8 @@ const SyntaxHighlightedEditor: React.FC<SyntaxHighlightedEditorProps> = ({
   isReadOnly = false
 }) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const highlighterRef = useRef<HTMLDivElement>(null);
   const [lineCount, setLineCount] = useState(1);
-  const [isEditing, setIsEditing] = useState(false);
 
   useEffect(() => {
     const lines = content.split('\n').length;
@@ -32,18 +32,10 @@ const SyntaxHighlightedEditor: React.FC<SyntaxHighlightedEditorProps> = ({
   };
 
   const handleScroll = (e: React.UIEvent<HTMLTextAreaElement>) => {
-    const highlighter = document.getElementById('syntax-highlighter');
-    if (highlighter) {
-      highlighter.scrollTop = e.currentTarget.scrollTop;
+    if (highlighterRef.current) {
+      highlighterRef.current.scrollTop = e.currentTarget.scrollTop;
+      highlighterRef.current.scrollLeft = e.currentTarget.scrollLeft;
     }
-  };
-
-  const handleFocus = () => {
-    setIsEditing(true);
-  };
-
-  const handleBlur = () => {
-    setIsEditing(false);
   };
 
   // 语言映射，将我们的语言标识符映射到 Prism 支持的语言
@@ -63,33 +55,50 @@ const SyntaxHighlightedEditor: React.FC<SyntaxHighlightedEditorProps> = ({
 
   const highlighterLanguage = getLanguageForHighlighter(language);
 
+  // 统一的样式配置
+  const editorStyles = {
+    fontSize: '14px',
+    lineHeight: '1.5rem',
+    fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace',
+    padding: '16px',
+    margin: 0,
+    border: 'none',
+    outline: 'none',
+    tabSize: 2,
+  };
+
   return (
-    <div className="flex-1 overflow-hidden flex font-mono text-sm leading-relaxed relative bg-slate-900 h-full">
+    <div className="flex-1 overflow-hidden flex font-mono text-sm relative bg-slate-900 h-full">
       {/* Line Numbers */}
       <div className="w-12 bg-slate-800 text-slate-500 text-right pr-3 py-4 select-none border-r border-slate-700 shrink-0 overflow-hidden">
         {Array.from({ length: lineCount }, (_, i) => (
-          <div key={i} className="min-h-[1.5rem] leading-6">{i + 1}</div>
+          <div 
+            key={i} 
+            style={{ 
+              lineHeight: '1.5rem', 
+              fontSize: '14px',
+              minHeight: '1.5rem'
+            }}
+          >
+            {i + 1}
+          </div>
         ))}
       </div>
       
       {/* Editor Content */}
       <div className="flex-1 relative overflow-hidden">
-        {/* Syntax Highlighter (Background) */}
+        {/* Syntax Highlighter (Always visible background) */}
         <div 
-          id="syntax-highlighter"
-          className={`absolute inset-0 overflow-auto ${isEditing ? 'opacity-0' : 'opacity-100'} transition-opacity duration-200`}
+          ref={highlighterRef}
+          className="absolute inset-0 overflow-auto"
           style={{ pointerEvents: 'none' }}
         >
           <SyntaxHighlighter
             language={highlighterLanguage}
             style={vscDarkPlus}
             customStyle={{
-              margin: 0,
-              padding: '16px',
+              ...editorStyles,
               background: 'transparent',
-              fontSize: '14px',
-              lineHeight: '1.5',
-              fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace'
             }}
             showLineNumbers={false}
             wrapLines={false}
@@ -98,28 +107,21 @@ const SyntaxHighlightedEditor: React.FC<SyntaxHighlightedEditorProps> = ({
           </SyntaxHighlighter>
         </div>
 
-        {/* Textarea (Foreground when editing) */}
+        {/* Transparent Textarea (Always on top for input) */}
         <textarea
           ref={textareaRef}
           value={content}
           onChange={handleChange}
           onScroll={handleScroll}
-          onFocus={handleFocus}
-          onBlur={handleBlur}
           readOnly={isReadOnly}
-          className={`absolute inset-0 w-full h-full p-4 resize-none outline-none font-mono text-sm leading-6 whitespace-pre ${
-            isEditing ? 'bg-slate-900 text-slate-300' : 'bg-transparent text-transparent caret-slate-300'
-          } transition-all duration-200`}
-          style={{ 
-            tabSize: 2,
-            fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace'
-          }}
+          className="absolute inset-0 w-full h-full resize-none bg-transparent text-transparent caret-slate-300 whitespace-pre selection:bg-blue-500/40 focus:outline-none"
+          style={editorStyles}
           spellCheck={false}
         />
 
         {/* Read-only indicator */}
         {isReadOnly && (
-          <div className="absolute top-2 right-2 bg-slate-700 text-slate-300 px-2 py-1 rounded text-xs flex items-center gap-1">
+          <div className="absolute top-2 right-2 bg-slate-700 text-slate-300 px-2 py-1 rounded text-xs flex items-center gap-1 z-10">
             <Shield size={12} />
             只读
           </div>
