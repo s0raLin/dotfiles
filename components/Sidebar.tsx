@@ -17,8 +17,10 @@ const CategorySection: React.FC<{
   category: ConfigCategory;
   files: ConfigFile[];
   activeFileId: string | null;
+  fileEditStates: { [fileId: string]: any };
+  isModified: boolean;
   onFileSelect: (id: string) => void;
-}> = ({ category, files, activeFileId, onFileSelect }) => {
+}> = ({ category, files, activeFileId, fileEditStates, isModified, onFileSelect }) => {
   const [isExpanded, setIsExpanded] = useState(true);
   const IconComponent = iconMap[category.icon as keyof typeof iconMap] || FileText;
   
@@ -38,29 +40,40 @@ const CategorySection: React.FC<{
       
       {isExpanded && (
         <div className="ml-6 space-y-1">
-          {files.map(file => (
-            <div
-              key={file.id}
-              onClick={() => onFileSelect(file.id)}
-              className={`flex items-center gap-2 p-2 rounded-lg cursor-pointer transition-colors ${
-                activeFileId === file.id
-                  ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border-l-2 border-blue-500'
-                  : 'hover:bg-slate-100 dark:hover:bg-slate-800'
-              }`}
-            >
-              <FileText size={14} className="text-slate-400" />
-              <div className="flex-1 min-w-0">
-                <div className="text-sm font-mono truncate">{file.name}</div>
-                <div className="text-xs text-slate-500 truncate">{file.path}</div>
+          {files.map(file => {
+            // 检查文件是否有未保存的更改
+            const hasUnsavedChanges = fileEditStates[file.id]?.isModified || 
+                                    (activeFileId === file.id && isModified);
+            
+            return (
+              <div
+                key={file.id}
+                onClick={() => onFileSelect(file.id)}
+                className={`flex items-center gap-2 p-2 rounded-lg cursor-pointer transition-colors ${
+                  activeFileId === file.id
+                    ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border-l-2 border-blue-500'
+                    : 'hover:bg-slate-100 dark:hover:bg-slate-800'
+                }`}
+              >
+                <FileText size={14} className="text-slate-400" />
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-mono truncate flex items-center gap-1">
+                    {file.name}
+                    {hasUnsavedChanges && (
+                      <span className="text-orange-400 text-xs" title="有未保存的更改">●</span>
+                    )}
+                  </div>
+                  <div className="text-xs text-slate-500 truncate">{file.path}</div>
+                </div>
+                {file.isSymlink && (
+                  <div className="w-2 h-2 rounded-full bg-purple-400" title="Symbolic Link" />
+                )}
+                {file.backupExists && (
+                  <div className="w-2 h-2 rounded-full bg-green-400" title="Backup Available" />
+                )}
               </div>
-              {file.isSymlink && (
-                <div className="w-2 h-2 rounded-full bg-purple-400" title="Symbolic Link" />
-              )}
-              {file.backupExists && (
-                <div className="w-2 h-2 rounded-full bg-green-400" title="Backup Available" />
-              )}
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
@@ -69,7 +82,7 @@ const CategorySection: React.FC<{
 
 const Sidebar: React.FC = () => {
   const { state, actions } = useApp();
-  const { categories, files, systemInfo, activeFileId, isLoading } = state;
+  const { categories, files, systemInfo, activeFileId, isLoading, fileEditStates, isModified } = state;
 
   const handleRefresh = () => {
     actions.refreshData();
@@ -110,6 +123,8 @@ const Sidebar: React.FC = () => {
                 category={category}
                 files={categoryFiles}
                 activeFileId={activeFileId}
+                fileEditStates={fileEditStates}
+                isModified={isModified}
                 onFileSelect={actions.selectFile}
               />
             );

@@ -5,9 +5,13 @@ import { Settings, Search, Upload, Save, User, Wifi, WifiOff } from 'lucide-reac
 
 const TopNavbar: React.FC = () => {
   const { state, actions } = useApp();
-  const { systemInfo, isLoading, error } = state;
+  const { systemInfo, isLoading, isModified, fileEditStates, activeFileId } = state;
   const [isConnected, setIsConnected] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+
+  // 计算未保存文件的数量
+  const unsavedFilesCount = Object.values(fileEditStates).filter(fileState => fileState.isModified).length + 
+                           (isModified && activeFileId && !fileEditStates[activeFileId]?.isModified ? 1 : 0);
 
   // 检查后端连接状态
   useEffect(() => {
@@ -37,8 +41,7 @@ const TopNavbar: React.FC = () => {
   };
 
   const handleApplyAll = async () => {
-    // TODO: 实现全部应用功能
-    console.log('全部应用');
+    await actions.saveAllFiles();
   };
 
   return (
@@ -65,6 +68,11 @@ const TopNavbar: React.FC = () => {
                     连接失败 - 请检查后端服务
                   </span>
                 </>
+              )}
+              {unsavedFilesCount > 0 && (
+                <span className="text-xs font-medium text-orange-600 dark:text-orange-400 ml-2">
+                  {unsavedFilesCount} 个文件未保存
+                </span>
               )}
               {/* 为加载指示器预留固定空间 */}
               <div className="w-3 h-3 flex items-center justify-center">
@@ -104,11 +112,14 @@ const TopNavbar: React.FC = () => {
           </button>
           <button 
             onClick={handleApplyAll}
-            disabled={!isConnected || isLoading}
+            disabled={!isConnected || isLoading || unsavedFilesCount === 0}
             className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white hover:bg-green-700 rounded-lg text-sm font-medium transition-all shadow-lg shadow-green-600/20 disabled:opacity-50 disabled:cursor-not-allowed"
+            title={unsavedFilesCount > 0 ? `保存 ${unsavedFilesCount} 个未保存的文件 (Ctrl+Shift+S)` : '没有需要保存的文件'}
           >
             <Save size={16} />
-            <span className="hidden sm:inline">全部应用</span>
+            <span className="hidden sm:inline">
+              {unsavedFilesCount > 0 ? `保存全部 (${unsavedFilesCount})` : '全部应用'}
+            </span>
           </button>
         </div>
         <div className="w-10 h-10 rounded-full bg-slate-200 dark:bg-slate-800 flex items-center justify-center overflow-hidden border border-slate-300 dark:border-slate-700">

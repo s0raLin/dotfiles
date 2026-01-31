@@ -1,11 +1,11 @@
 
 import React from 'react';
 import { useApp } from '../contexts/AppContext';
-import { FileText, GitBranch, Wifi, WifiOff, AlertCircle, CheckCircle, Clock } from 'lucide-react';
+import { FileText, WifiOff, AlertCircle, CheckCircle, Clock, Undo, Redo } from 'lucide-react';
 
 const StatusBar: React.FC = () => {
   const { state } = useApp();
-  const { systemInfo, files, activeFileId, isModified, isLoading, error } = state;
+  const { systemInfo, files, activeFileId, isModified, isLoading, error, undoHistory, redoHistory } = state;
 
   const activeFile = files.find(f => f.id === activeFileId);
   const modifiedFilesCount = files.filter(f => f.lastModified > new Date(Date.now() - 24 * 60 * 60 * 1000)).length;
@@ -14,11 +14,25 @@ const StatusBar: React.FC = () => {
     <div className="h-6 bg-blue-600 flex items-center px-3 justify-between text-xs font-medium text-white shrink-0 select-none">
       <div className="flex items-center gap-4">
         {activeFile && (
-          <div className="flex items-center gap-1">
-            <FileText size={12} />
-            <span>{activeFile.name}</span>
-            {isModified && <span className="text-orange-300">●</span>}
-          </div>
+          <>
+            <div className="flex items-center gap-1">
+              <FileText size={12} />
+              <span>{activeFile.name}</span>
+              {isModified && <span className="text-orange-300">●</span>}
+            </div>
+            
+            {/* 撤销/重做状态 */}
+            <div className="flex items-center gap-2 text-slate-300">
+              <div className={`flex items-center gap-1 ${undoHistory.length > 0 ? 'text-white' : 'text-slate-500'}`}>
+                <Undo size={10} />
+                <span className="text-xs">{undoHistory.length}</span>
+              </div>
+              <div className={`flex items-center gap-1 ${redoHistory.length > 0 ? 'text-white' : 'text-slate-500'}`}>
+                <Redo size={10} />
+                <span className="text-xs">{redoHistory.length}</span>
+              </div>
+            </div>
+          </>
         )}
         {error && (
           <div className="flex items-center gap-1 text-red-300">

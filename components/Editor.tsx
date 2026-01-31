@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../contexts/AppContext';
-import { Save, RotateCcw, Copy, Download, FileText, Shield, AlertCircle } from 'lucide-react';
+import { Save, RotateCcw, Copy, Download, FileText, Shield, AlertCircle, Undo, Redo } from 'lucide-react';
 import SyntaxHighlightedEditor from './SyntaxHighlightedEditor';
 
 const Editor: React.FC = () => {
   const { state, actions } = useApp();
-  const { activeFileId, activeFileContent, files, isModified, isLoading, error } = state;
+  const { activeFileId, activeFileContent, files, isModified, isLoading, error, undoHistory, redoHistory } = state;
   
   const [showError, setShowError] = useState(false);
 
@@ -60,10 +60,83 @@ const Editor: React.FC = () => {
   };
 
   const handleRevert = () => {
-    if (activeFileId) {
-      actions.selectFile(activeFileId); // 重新加载文件内容
-    }
+    actions.revertChanges();
   };
+
+  const handleUndo = () => {
+    actions.undo();
+  };
+
+  const handleRedo = () => {
+    actions.redo();
+  };
+
+  // 添加全局键盘快捷键监听
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      // 只在编辑器有焦点或者没有其他输入元素有焦点时处理
+      const activeElement = document.activeElement as HTMLElement;
+      const isInputElement = activeElement?.tagName === 'INPUT' || 
+                           activeElement?.tagName === 'TEXTAREA' ||
+                           activeElement?.contentEditable === 'true';
+
+      if (!isInputElement && activeFileId) {
+        // Ctrl+S 保存
+        if (e.ctrlKey && e.key === 's' && !e.shiftKey) {
+          e.preventDefault();
+          handleSave();
+          return;
+        }
+
+        // Ctrl+Shift+S 保存全部
+        if (e.ctrlKey && e.shiftKey && e.key === 'S') {
+          e.preventDefault();
+          actions.saveAllFiles();
+          return;
+        }
+
+        // Ctrl+Z 撤销
+        if (e.ctrlKey && e.key === 'z' && !e.shiftKey) {
+          e.preventDefault();
+          handleUndo();
+          return;
+        }
+
+        // Ctrl+Shift+Z 或 Ctrl+Y 重做
+        if ((e.ctrlKey && e.shiftKey && e.key === 'Z') || (e.ctrlKey && e.key === 'y')) {
+          e.preventDefault();
+          handleRedo();
+          return;
+        }
+
+        // Ctrl+Shift+R 撤销所有更改
+        if (e.ctrlKey && e.shiftKey && e.key === 'R') {
+          e.preventDefault();
+          handleRevert();
+          return;
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleGlobalKeyDown);
+    return () => document.removeEventListener('keydown', handleGlobalKeyDown);
+  }, [activeFileId, isModified]);
+
+  // 添加页面关闭前的提醒
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      // 检查是否有任何未保存的更改
+      const hasUnsavedChanges = isModified || Object.values(state.fileEditStates).some(fileState => fileState.isModified);
+      
+      if (hasUnsavedChanges) {
+        e.preventDefault();
+        return '您有未保存的更改，确定要离开吗？';
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [isModified, state.fileEditStates]);
 
   const formatFileSize = (bytes: number): string => {
     if (bytes < 1024) return `${bytes} B`;
@@ -132,10 +205,26 @@ const Editor: React.FC = () => {
         
         <div className="flex items-center gap-2">
           <button 
-            onClick={handleRevert}
-            disabled={!isModified || isLoading}
+            onClick={handleUndo}
+            disabled={undoHistory.length === 0 || isLoading}
             className="p-2 hover:bg-slate-700 rounded text-slate-400 hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed" 
-            title="撤销更改"
+            title="撤销 (Ctrl+Z)"
+          >
+            <Undo size={16} />
+          </button>
+          <button 
+            onClick={handleRedo}
+            disabled={redoHistory.length === 0 || isLoading}
+            className="p-2 hover:bg-slate-700 rounded text-slate-400 hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed" 
+            title="重做 (Ctrl+Shift+Z)"
+          >
+            <Redo size={16} />
+          </button>
+          <button 
+            onClick={handleRevert}
+            disabled={isLoading}
+            className="p-2 hover:bg-slate-700 rounded text-slate-400 hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed" 
+            title="重置到原始状态 (Ctrl+Shift+R)"
           >
             <RotateCcw size={16} />
           </button>
@@ -163,7 +252,7 @@ const Editor: React.FC = () => {
                 ? 'bg-orange-600 hover:bg-orange-700 text-white' 
                 : 'bg-slate-700 text-slate-400 cursor-not-allowed'
             }`}
-            title={isModified ? "保存到系统" : "无更改"}
+            title={isModified ? "保存到系统 (Ctrl+S)" : "无更改"}
           >
             <Save size={14} />
             <span className="whitespace-nowrap">
@@ -184,6 +273,9 @@ const Editor: React.FC = () => {
             content={activeFileContent}
             language={language}
             onContentChange={actions.updateFileContent}
+            onSave={handleSave}
+            onUndo={handleUndo}
+            onRedo={handleRedo}
             isReadOnly={isSystemFile && !activeFile.path.startsWith(process.env.HOME || '~')}
           />
         )}

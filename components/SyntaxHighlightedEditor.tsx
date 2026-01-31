@@ -8,13 +8,19 @@ interface SyntaxHighlightedEditorProps {
   language: string;
   onContentChange: (content: string) => void;
   isReadOnly?: boolean;
+  onSave?: () => void;
+  onUndo?: () => void;
+  onRedo?: () => void;
 }
 
 const SyntaxHighlightedEditor: React.FC<SyntaxHighlightedEditorProps> = ({
   content,
   language,
   onContentChange,
-  isReadOnly = false
+  isReadOnly = false,
+  onSave,
+  onUndo,
+  onRedo
 }) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const highlighterRef = useRef<HTMLDivElement>(null);
@@ -31,6 +37,31 @@ const SyntaxHighlightedEditor: React.FC<SyntaxHighlightedEditorProps> = ({
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     if (!isReadOnly) {
       onContentChange(e.target.value);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (isReadOnly) return;
+
+    // Ctrl+S 保存
+    if (e.ctrlKey && e.key === 's') {
+      e.preventDefault();
+      onSave?.();
+      return;
+    }
+
+    // Ctrl+Z 撤销
+    if (e.ctrlKey && e.key === 'z' && !e.shiftKey) {
+      e.preventDefault();
+      onUndo?.();
+      return;
+    }
+
+    // Ctrl+Shift+Z 或 Ctrl+Y 重做
+    if ((e.ctrlKey && e.shiftKey && e.key === 'Z') || (e.ctrlKey && e.key === 'y')) {
+      e.preventDefault();
+      onRedo?.();
+      return;
     }
   };
 
@@ -134,6 +165,7 @@ const SyntaxHighlightedEditor: React.FC<SyntaxHighlightedEditorProps> = ({
           ref={textareaRef}
           value={processedContent}
           onChange={handleChange}
+          onKeyDown={handleKeyDown}
           onScroll={handleScroll}
           readOnly={isReadOnly}
           className="absolute inset-0 w-full h-full resize-none bg-transparent text-transparent caret-white selection:bg-blue-500/30 focus:outline-none overflow-auto"
