@@ -52,7 +52,7 @@ export const COMMON_CONFIG_FILES: Omit<ConfigFile, 'lastModified' | 'size' | 'ba
     id: 'bashrc',
     name: '.bashrc',
     path: '~/.bashrc',
-    category: CONFIG_CATEGORIES[0],
+    category: CONFIG_CATEGORIES[0].id,
     description: 'Bash shell 配置文件',
     isSymlink: false
   },
@@ -60,7 +60,7 @@ export const COMMON_CONFIG_FILES: Omit<ConfigFile, 'lastModified' | 'size' | 'ba
     id: 'zshrc',
     name: '.zshrc',
     path: '~/.zshrc',
-    category: CONFIG_CATEGORIES[0],
+    category: CONFIG_CATEGORIES[0].id,
     description: 'Zsh shell 配置文件',
     isSymlink: false
   },
@@ -68,7 +68,7 @@ export const COMMON_CONFIG_FILES: Omit<ConfigFile, 'lastModified' | 'size' | 'ba
     id: 'profile',
     name: '.profile',
     path: '~/.profile',
-    category: CONFIG_CATEGORIES[0],
+    category: CONFIG_CATEGORIES[0].id,
     description: '通用 shell 配置文件',
     isSymlink: false
   },
@@ -78,7 +78,7 @@ export const COMMON_CONFIG_FILES: Omit<ConfigFile, 'lastModified' | 'size' | 'ba
     id: 'vimrc',
     name: '.vimrc',
     path: '~/.vimrc',
-    category: CONFIG_CATEGORIES[1],
+    category: CONFIG_CATEGORIES[1].id,
     description: 'Vim 编辑器配置文件',
     isSymlink: false
   },
@@ -86,7 +86,7 @@ export const COMMON_CONFIG_FILES: Omit<ConfigFile, 'lastModified' | 'size' | 'ba
     id: 'nvim-init',
     name: 'init.lua',
     path: '~/.config/nvim/init.lua',
-    category: CONFIG_CATEGORIES[1],
+    category: CONFIG_CATEGORIES[1].id,
     description: 'Neovim 配置文件',
     isSymlink: false
   },
@@ -96,7 +96,7 @@ export const COMMON_CONFIG_FILES: Omit<ConfigFile, 'lastModified' | 'size' | 'ba
     id: 'gitconfig',
     name: '.gitconfig',
     path: '~/.gitconfig',
-    category: CONFIG_CATEGORIES[2],
+    category: CONFIG_CATEGORIES[2].id,
     description: 'Git 全局配置文件',
     isSymlink: false
   },
@@ -104,7 +104,7 @@ export const COMMON_CONFIG_FILES: Omit<ConfigFile, 'lastModified' | 'size' | 'ba
     id: 'gitignore',
     name: '.gitignore_global',
     path: '~/.gitignore_global',
-    category: CONFIG_CATEGORIES[2],
+    category: CONFIG_CATEGORIES[2].id,
     description: 'Git 全局忽略文件',
     isSymlink: false
   },
@@ -114,7 +114,7 @@ export const COMMON_CONFIG_FILES: Omit<ConfigFile, 'lastModified' | 'size' | 'ba
     id: 'ssh-config',
     name: 'config',
     path: '~/.ssh/config',
-    category: CONFIG_CATEGORIES[3],
+    category: CONFIG_CATEGORIES[3].id,
     description: 'SSH 客户端配置文件',
     isSymlink: false
   },
@@ -124,7 +124,7 @@ export const COMMON_CONFIG_FILES: Omit<ConfigFile, 'lastModified' | 'size' | 'ba
     id: 'hosts',
     name: 'hosts',
     path: '/etc/hosts',
-    category: CONFIG_CATEGORIES[4],
+    category: CONFIG_CATEGORIES[4].id,
     description: '系统主机名解析文件',
     isSymlink: false
   }

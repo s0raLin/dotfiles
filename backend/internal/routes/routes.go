@@ -30,6 +30,10 @@ func SetupRoutes() *mux.Router {
 	api.HandleFunc("/files/{id}", configHandler.GetFile).Methods("GET")
 	api.HandleFunc("/files/{id}", configHandler.UpdateFile).Methods("PUT")
 	api.HandleFunc("/files/{id}/backup", configHandler.BackupFile).Methods("POST")
+	
+	// 导入导出相关路由
+	api.HandleFunc("/export", configHandler.ExportConfigs).Methods("GET")
+	api.HandleFunc("/import", configHandler.ImportConfigs).Methods("POST")
 
 	// 系统信息相关路由
 	api.HandleFunc("/system", systemHandler.GetSystemInfo).Methods("GET")

@@ -68,6 +68,41 @@ class ApiService {
   async getSystemInfo(): Promise<APIResponse<SystemInfo>> {
     return this.request<SystemInfo>('/system');
   }
+
+  // 导出配置文件
+  async exportConfigs(): Promise<Blob> {
+    const response = await fetch(`${API_BASE_URL}/export`);
+    if (!response.ok) {
+      throw new Error(`导出失败: ${response.status}`);
+    }
+    return response.blob();
+  }
+
+  // 导入配置文件
+  async importConfigs(file: File): Promise<APIResponse<any>> {
+    const formData = new FormData();
+    formData.append('configFile', file);
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/import`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Import request failed:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : '导入失败',
+      };
+    }
+  }
 }
 
 export const apiService = new ApiService();

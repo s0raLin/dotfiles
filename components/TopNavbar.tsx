@@ -1,13 +1,17 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useApp } from '../contexts/AppContext';
-import { Settings, Search, Upload, Save, User, Wifi, WifiOff } from 'lucide-react';
+import { Settings, Search, Upload, Save, User, Wifi, WifiOff, Download } from 'lucide-react';
+import { apiService } from '../services/api';
 
 const TopNavbar: React.FC = () => {
   const { state, actions } = useApp();
   const { systemInfo, isLoading, isModified, fileEditStates, activeFileId } = state;
   const [isConnected, setIsConnected] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isImporting, setIsImporting] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // 计算未保存文件的数量
   const unsavedFilesCount = Object.values(fileEditStates).filter(fileState => fileState.isModified).length + 
@@ -29,15 +33,67 @@ const TopNavbar: React.FC = () => {
     return () => clearInterval(interval);
   }, []);
 
-  const handleSearch = (e: React.FormEvent) => {
+  const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     // TODO: 实现搜索功能
     console.log('搜索:', searchQuery);
   };
 
   const handleImportConfig = () => {
-    // TODO: 实现配置导入功能
-    console.log('导入配置');
+    fileInputRef.current?.click();
+  };
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.name.toLowerCase().endsWith('.zip')) {
+      alert('请选择ZIP格式的配置文件');
+      return;
+    }
+
+    setIsImporting(true);
+    try {
+      const result = await apiService.importConfigs(file);
+      if (result.success) {
+        alert(result.data?.message || '导入成功');
+        // 刷新数据
+        actions.refreshData();
+      } else {
+        alert('导入失败: ' + result.error);
+      }
+    } catch (error) {
+      alert('导入失败: ' + (error instanceof Error ? error.message : '未知错误'));
+    } finally {
+      setIsImporting(false);
+      // 清空文件输入
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  const handleExportConfig = async () => {
+    setIsExporting(true);
+    try {
+      const blob = await apiService.exportConfigs();
+      
+      // 创建下载链接
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `linux-configs-${new Date().toISOString().split('T')[0]}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      
+      alert('配置文件导出成功');
+    } catch (error) {
+      alert('导出失败: ' + (error instanceof Error ? error.message : '未知错误'));
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   const handleApplyAll = async () => {
@@ -103,12 +159,32 @@ const TopNavbar: React.FC = () => {
           />
         </form>
         <div className="flex gap-2">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".zip"
+            onChange={handleFileSelect}
+            className="hidden"
+          />
           <button 
             onClick={handleImportConfig}
-            className="flex items-center gap-2 px-4 py-2 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 rounded-lg text-sm font-medium transition-all"
+            disabled={isImporting || !isConnected}
+            className="flex items-center gap-2 px-4 py-2 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 rounded-lg text-sm font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Upload size={16} />
-            <span className="hidden sm:inline">导入配置</span>
+            <span className="hidden sm:inline">
+              {isImporting ? '导入中...' : '导入配置'}
+            </span>
+          </button>
+          <button 
+            onClick={handleExportConfig}
+            disabled={isExporting || !isConnected}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-lg text-sm font-medium transition-all shadow-lg shadow-blue-600/20 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Download size={16} />
+            <span className="hidden sm:inline">
+              {isExporting ? '导出中...' : '导出配置'}
+            </span>
           </button>
           <button 
             onClick={handleApplyAll}
